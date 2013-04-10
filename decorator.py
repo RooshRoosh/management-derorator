@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from django.core.management.base import BaseCommand, CommandError
-
 import commands
 import re
 import os
