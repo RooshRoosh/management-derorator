@@ -7,32 +7,34 @@ import os
 #from settings import PID_PATH
 PID_PATH = ''
 
-def check_pid(function, callback):
-    def wrapper(self, *args, **options):
-        def run_function(): # ^- #Создаём/Удаляем pid Вызываем handle для работы
-            open(pid_filename,'wb').close()
-            try:
-                function(self, *args, **options)
-            except Exception, q:
-                os.remove(pid_filename)
-                raise Exception('Fail command because of %s' % q) # Логируeм отказ handle
-            os.remove(pid_filename) # Удаляем pid-file после удачного завершения работы
+def check_pid(callback):
+    def decorator(function):
+        def wrapper(self, *args, **options):
+            def run_function(): # ^- #Создаём/Удаляем pid Вызываем handle для работы
+                open(pid_filename,'wb').close()
+                try:
+                    function(self, *args, **options)
+                except Exception, q:
+                    os.remove(pid_filename)
+                    raise Exception('Fail command because of %s' % q) # Логируeм отказ handle
+                os.remove(pid_filename) # Удаляем pid-file после удачного завершения работы
 
-        #======================================================================#
-        command_name = self.__module__.split('.')[-1] # Вытащили имя команды        
-        pid_filename = os.path.join(PID_PATH, command_name+'.pid')
-        if os.path.exists(pid_filename): # Проверяем наличие файла
-            # Нашли
-            # Проверяем если ли в работе старый процесс.
-            st = 'ps ax| grep "python manage.py %s"' % command_name
-            commandOutput = commands.getoutput(st) # Нашли все процессы с этой фразой
-            feed = [string for string in commandOutput.split('\n')
-                if re.search(r'\d\d?:\d\d python manage.py %s' % command_name, string)] # Отсеяли лишние процессы
-            
-            if len(feed) > 1: # 1 - текущий процесс
-                # В работе уже есть такие процессы
-                # Пид-файл соответствует процессу
-                callback() # Обрабатываем 
-        run_function()
-    return wrapper
+            #======================================================================#
+            command_name = self.__module__.split('.')[-1] # Вытащили имя команды        
+            pid_filename = os.path.join(PID_PATH, command_name+'.pid')
+            if os.path.exists(pid_filename): # Проверяем наличие файла
+                # Нашли
+                # Проверяем если ли в работе старый процесс.
+                st = 'ps ax| grep "python manage.py %s"' % command_name
+                commandOutput = commands.getoutput(st) # Нашли все процессы с этой фразой
+                feed = [string for string in commandOutput.split('\n')
+                    if re.search(r'\d\d?:\d\d python manage.py %s' % command_name, string)] # Отсеяли лишние процессы
+                
+                if len(feed) > 1: # 1 - текущий процесс
+                    # В работе уже есть такие процессы
+                    # Пид-файл соответствует процессу
+                    callback() # Обрабатываем 
+            run_function()
+        return wrapper
+    return decorator
 
